@@ -9,7 +9,19 @@ from DBConnection import DBConnection
 
 
 class RentalForm(QDialog):
+    """
+    Клас, що відповідає за форму оренди предмета інвентарю.
+    """
     def __init__(self, db: DBConnection, item_id=None):
+        """
+        Метод для ініціалізації вікна оренди.
+
+        :param db: Підключення до бази даних.
+        :type db: DBConnection
+
+        :param item_id: ID предмета для оренди.
+        :type item_id: int, optional
+        """
         super().__init__()
         self.db = db
         self.item_id = item_id
@@ -20,6 +32,10 @@ class RentalForm(QDialog):
         self.load_item_data()
 
     def init_ui(self):
+        """
+        Метод для ініціалізації UI форми.
+        Створює поля для введення імені орендаря, дати початку/кінця оренди, приміток.
+        """
         layout = QVBoxLayout()
         self.setLayout(layout)
 
@@ -61,7 +77,12 @@ class RentalForm(QDialog):
         layout.addWidget(button_box)
 
     def load_item_data(self):
-        """Завантаження даних про предмет для оренди"""
+        """
+        Метод для завантаження та відображення інформації про предмет для оренди.
+        Показує номер, назву та статус предмета.
+
+        :raise: Exception, якщо виникла помилка завантаження даних.
+        """
         if self.item_id is not None:
             try:
                 query = """
@@ -83,7 +104,11 @@ class RentalForm(QDialog):
                 QMessageBox.critical(self, "Помилка", f"Не вдалося завантажити дані: {str(e)}")
 
     def validate_and_accept(self):
-        """Перевірка даних перед закриттям діалогу"""
+        """
+        Метод для перевірки введених даних.
+
+        :raise: ValueError, якщо введено некоректні дані.
+        """
         try:
             # Перевірка заповненості обов'язкових полів
             if not self.user_name_edit.text().strip():
@@ -99,7 +124,12 @@ class RentalForm(QDialog):
             QMessageBox.warning(self, "Попередження", str(e))
 
     def get_data(self):
-        """Повертає дані у вигляді словника"""
+        """
+        Метод для отримання даних у вигляді словника.
+
+        :return: Словник з даними оренди.
+        :rtype: dict
+        """
         return {
             "user_name": self.user_name_edit.text().strip(),
             "start_date": self.start_date_edit.date().toPyDate(),

@@ -17,7 +17,14 @@ from StatsWindow import StatsWindow
 
 
 class InventoryApp(QMainWindow):
+    """
+    Головний клас додатку. В собі має головний інтерфейс користувача з чотирма вкладками.
+    """
     def __init__(self):
+        """
+        Метод для ініціалізації головного вікна застосунку.
+        Встановлює підключення до бази даних, створює UI.
+        """
         super().__init__()
         self.setWindowTitle("Система обліку туристичного інвентарю")
         self.setGeometry(100, 100, 1200, 800)
@@ -39,13 +46,16 @@ class InventoryApp(QMainWindow):
         # Ініціалізація UI
         self.init_ui()
 
-        # Завантажити початкові дані
+        # Завантаження початкових даних
         self.load_initial_data()
 
         # Застосування стилів
         self.apply_styles()
 
     def init_ui(self):
+        """
+        Метод, що ініціалізує UI. Створює вкладки, та статус бар.
+        """
         # Створення вкладок
         self.tabs = QTabWidget()
         self.main_layout.addWidget(self.tabs)
@@ -80,6 +90,10 @@ class InventoryApp(QMainWindow):
         self.status_bar.showMessage("Готово до роботи")
 
     def init_inventory_tab(self):
+        """
+        Метод для ініціалізації вкладки інвентарю. Створює панелі пошуку та фільтрів,
+        таблицю з інвентарем та кнопки для керування.
+        """
         layout = QVBoxLayout()
         self.inventory_tab.setLayout(layout)
 
@@ -148,7 +162,10 @@ class InventoryApp(QMainWindow):
         layout.addWidget(button_panel)
 
     def init_history_tab(self):
-        """Ініціалізація вкладки історії використання"""
+        """
+        Метод для ініціалізації вкладки історії використання інвентарю.
+        Створює панелі пошуку та фільтрів, таблицю з данини використання предметів та кнопки для керування.
+        """
         layout = QVBoxLayout()
         self.history_tab.setLayout(layout)
 
@@ -209,6 +226,10 @@ class InventoryApp(QMainWindow):
 
 
     def init_rental_tab(self):
+        """
+        Метод для ініціалізації вкладки активних оренд. Створює панелі пошуку та фільтрів,
+        таблицю з даними про активні оренди та кнопками оновлення та повернення.
+        """
         layout = QVBoxLayout()
         self.rental_tab.setLayout(layout)
 
@@ -258,6 +279,9 @@ class InventoryApp(QMainWindow):
         layout.addWidget(button_panel)
 
     def load_initial_data(self):
+        """
+        Метод для завантаження початкових даних для всіх вкладок.
+        """
         # Завантаження даних для фільтрів
         self.load_filter_data()
         # Завантаження даних інвентарю
@@ -268,7 +292,9 @@ class InventoryApp(QMainWindow):
         self.load_rental_data()
 
     def load_filter_data(self):
-        """Завантаження даних для фільтрів"""
+        """
+        Метод для завантаження даних для фільтрів категорій та статусів.
+        """
         try:
             # Завантаження категорій
             categories = self.db.get_categories()
@@ -288,7 +314,10 @@ class InventoryApp(QMainWindow):
             QMessageBox.critical(self, "Помилка", f"Не вдалося завантажити дані фільтрів: {str(e)}")
 
     def load_inventory_data(self):
-        """Завантаження даних інвентарю з view"""
+        """
+        Метод для завантаження та відображення даних про інвентар у таблиці.
+        Якщо цілісність предмета менше, ніж 20%, він підсвітиться світло-червоним кольором.
+        """
         try:
             inventory_data = self.db.get_inventory_details()
 
@@ -310,7 +339,10 @@ class InventoryApp(QMainWindow):
             QMessageBox.critical(self, "Помилка", f"Не вдалося завантажити дані інвентарю: {str(e)}")
 
     def load_history_data(self):
-        """Завантаження історії використання з урахуванням сортування"""
+        """
+        Метод для завантаження та відображення історії використання інвентарю.
+        Різні статуси оренди підсвічуються різними кольорами.
+        """
         try:
             base_query = """
                 SELECT 
@@ -333,7 +365,6 @@ class InventoryApp(QMainWindow):
                 WHERE uh.is_rental = true
             """
 
-            # Додаємо сортування в залежності від вибору
             sort_option = self.history_sort_combo.currentData()
             if sort_option == "start_date_asc":
                 base_query += " ORDER BY uh.start_date ASC"
@@ -385,7 +416,10 @@ class InventoryApp(QMainWindow):
             QMessageBox.critical(self, "Помилка", f"Не вдалося завантажити історію використання: {str(e)}")
 
     def clear_history(self):
-        """Очищення всієї історії використання"""
+        """
+        Метод для видалення історії використання предметів інвентарю.
+        Для підтвердження/скасування дії використовується діалогове вікно.
+        """
         reply = QMessageBox.question(
             self, "Підтвердження",
             "Ви впевнені, що хочете повністю очистити історію використання?\nЦю дію не можна скасувати!",
@@ -401,7 +435,10 @@ class InventoryApp(QMainWindow):
                 QMessageBox.critical(self, "Помилка", f"Не вдалося очистити історію: {str(e)}")
 
     def load_rental_data(self):
-        """Завантаження даних оренди (відображає лише активні оренди)"""
+        """
+        Метод для завантаження та відображення активних оренд.
+        Фільтрує записи, показуючи лише активні оренди.
+        """
         try:
             rental_data = self.db.get_rental_history()
 
@@ -427,7 +464,9 @@ class InventoryApp(QMainWindow):
             QMessageBox.critical(self, "Помилка", f"Не вдалося завантажити дані оренди: {str(e)}")
 
     def filter_inventory(self):
-        """Фільтрація інвентарю"""
+        """
+        Метод для фільтрування таблиці з інвентарем за текстом пошуку та вибраними фільтрами.
+        """
         search_text = self.search_input.text().lower()
         category_id = self.category_filter.currentData()
         status_id = self.status_filter.currentData()
@@ -454,7 +493,9 @@ class InventoryApp(QMainWindow):
             self.inventory_table.setRowHidden(row, not should_show)
 
     def filter_history(self):
-        """Фільтрація історії використання"""
+        """
+        Метод для фільтрації таблиці історії пошуку за текстом пошуку та статусом.
+        """
         search_text = self.history_search.text().lower()
 
         for row in range(self.history_table.rowCount()):
@@ -469,7 +510,9 @@ class InventoryApp(QMainWindow):
             self.history_table.setRowHidden(row, not should_show)
 
     def filter_rentals(self):
-        """Фільтрація орендованих предметів"""
+        """
+        Метод для фільтрації таблиці оренди за текстом пошуку та статусом.
+        """
         search_text = self.rental_search.text().lower()
         status_filter = self.rental_status_filter.currentData()
 
@@ -494,7 +537,10 @@ class InventoryApp(QMainWindow):
             self.rental_table.setRowHidden(row, not should_show)
 
     def add_inventory_item(self):
-        """Додавання нового елементу інвентарю"""
+        """
+        Відкриває форму для додавання предмета в інвентар.
+        Після успішного закінчення операції, оновлює таблицю.
+        """
         dialog = InventoryItemForm(self.db)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             try:
@@ -506,7 +552,10 @@ class InventoryApp(QMainWindow):
                 QMessageBox.critical(self, "Помилка", str(e))
 
     def edit_inventory_item(self):
-        """Редагування існуючого елементу інвентарю"""
+        """
+        Відкриває форму для редагування вибраного предмета інвентарю.
+        Після успішного закінчення операції, оновлює таблицю.
+        """
         selected_row = self.inventory_table.currentRow()
         if selected_row == -1:
             QMessageBox.warning(self, "Попередження", "Будь ласка, виберіть предмет для редагування")
@@ -523,7 +572,10 @@ class InventoryApp(QMainWindow):
                 QMessageBox.critical(self, "Помилка", str(e))
 
     def delete_inventory_item(self):
-        """Видалення елементу інвентарю"""
+        """
+        Метод для видалення предмета з інвентарю.
+        Для підтвердження/скасування дії використовується діалогове вікно.
+        """
         selected_row = self.inventory_table.currentRow()
         if selected_row == -1:
             QMessageBox.warning(self, "Попередження", "Будь ласка, виберіть предмет для видалення")
@@ -547,7 +599,10 @@ class InventoryApp(QMainWindow):
                 QMessageBox.critical(self, "Помилка", str(e))
 
     def rent_item(self):
-        """Оренда предмету"""
+        """
+        Відкриває форму оренди для вибраного предмета.
+        Перед відкриттям форми здійснюється перевірка на доступність.
+        """
         selected_row = self.inventory_table.currentRow()
         if selected_row == -1:
             QMessageBox.warning(self, "Попередження", "Будь ласка, виберіть предмет для оренди")
@@ -571,7 +626,9 @@ class InventoryApp(QMainWindow):
                 QMessageBox.critical(self, "Помилка", str(e))
 
     def return_item(self):
-        """Повернення предмету з оренди"""
+        """
+        Відкриває форму повернення з оренди для вибраного предмета.
+        """
         selected_row = self.rental_table.currentRow()
         if selected_row == -1:
             QMessageBox.warning(self, "Попередження", "Будь ласка, виберіть запис оренди")
@@ -614,7 +671,9 @@ class InventoryApp(QMainWindow):
                 QMessageBox.critical(self, "Помилка", str(e))
 
     def apply_styles(self):
-        """Застосування CSS стилів"""
+        """
+        Метод для застосування CSS стилю до всіх елементів інтерфейсу.
+        """
         self.setStyleSheet("""
             QMainWindow {
                 background-color: #f5f5f5;

@@ -3,10 +3,27 @@ import psycopg2
 
 
 class DBConnection:
+    """
+    Клас, що відповідає за підключення до бази даних та здійснення запитів до неї
+
+    Attributes:
+        connection: Об'єкт підключення до бази даних
+    """
+
     def __init__(self):
+        """
+        Метод для ініціалізації об'єкта DBConnection зі значенням підключення none.
+        """
         self.connection = None
 
     def connect(self):
+        """
+        Метод для встановлення підключення до бази даних.
+
+        :return:
+            True у випадку успішного підключення, False у випадку помилки.
+        :rtype: bool
+        """
         try:
             self.connection = psycopg2.connect(
                 dbname="postgres",
@@ -20,10 +37,35 @@ class DBConnection:
             return False
 
     def disconnect(self):
+        """
+        Метод для закриття підключення до бази даних.
+
+        Якщо підключення було відкрите, метод закриває його.
+        """
         if self.connection:
             self.connection.close()
 
     def execute_query(self, query, params=None, fetch=False, return_df=False):
+        """
+        Метод для виконання запиту до бази даних.
+
+        :param query: Запит мовою SQL.
+        :type query: str
+
+        :param params: Параметри для підставлення в запит.
+        :type params: tuple, optional
+
+        :param fetch: Чи потрібно повертати результат запиту.
+        :type fetch: bool
+
+        :param return_df: Чи необхідно повертати результат у вигляді DataFrame.
+        :type return_df: bool
+
+        :return:
+            * Якщо fetch = False: True при успішному виконанні.
+            * Якщо fetch = True та return_df = False: Список кортежів з результатами.
+            * Якщо fetch = True та return_df = True: DataFrame з результатами запиту.
+        """
         try:
             with self.connection.cursor() as cursor:
                 cursor.execute(query, params or ())
@@ -51,7 +93,13 @@ class DBConnection:
             raise  # Піднімаємо виняток для обробки у викликаючому коді
 
     def get_categories(self):
-        """Отримання списку категорій у вигляді DataFrame"""
+        """Метод для отримання всіх категорій інвентарю з бази даних
+
+        :return: DataFrame з колонками category_id та category_name.
+        :rtype: pandas.DataFrame
+
+        :raise: Exception, якщо відбулася помилка отримання даних.
+        """
         try:
             return self.execute_query(
                 "SELECT category_id, category_name FROM categories ORDER BY category_name",
@@ -61,7 +109,14 @@ class DBConnection:
             raise Exception(f"Не вдалося отримати категорії: {str(e)}")
 
     def get_statuses(self):
-        """Отримання списку статусів у вигляді DataFrame"""
+        """
+        Метод для отримання всіх статусів доступності інвентарю з бази даних.
+
+        :return: DataFrame з колонками status_id та status_name.
+        :rtype: pandas.DataFrame
+
+        :raise: Exception, якщо відбулася помилка отримання даних.
+        """
         try:
             return self.execute_query(
                 "SELECT status_id, status_name FROM availability_statues ORDER BY status_id",
@@ -71,7 +126,14 @@ class DBConnection:
             raise Exception(f"Не вдалося отримати статуси: {str(e)}")
 
     def get_inventory_details(self):
-        """Отримання деталей інвентарю з view"""
+        """
+        Метод для отримання детальної інформації про інвентар з view.
+
+        :return: DataFrame з детальною інформацією про інвентар.
+        :rtype: pandas.DataFrame
+
+        :raise: Exception, якщо відбулася помилка отримання даних.
+        """
         try:
             return self.execute_query(
                 "SELECT * FROM inventory_details ORDER BY \"ID предмету\"",
@@ -81,7 +143,14 @@ class DBConnection:
             raise Exception(f"Не вдалося отримати дані інвентарю: {str(e)}")
 
     def get_rental_history(self):
-        """Отримання історії оренди"""
+        """
+        Метод для отримання історії оренд інвентарю з бази даних.
+
+        :return: DataFrame з історією оренди, відсортованою за датою початку.
+        :rtype: pandas.DataFrame
+
+        :raise: Exception, якщо відбулася помилка отримання даних.
+        """
         try:
             return self.execute_query(
                 "SELECT * FROM rental_items ORDER BY \"Початок оренди\" DESC",
@@ -91,7 +160,24 @@ class DBConnection:
             raise Exception(f"Не вдалося отримати історію оренди: {str(e)}")
 
     def add_inventory_item(self, item_data):
-        """Додавання нового предмету інвентарю"""
+        """
+        Метод для додавання предметів в інвентар.
+
+        :param item_data: Словник з даними предмету.
+        Словник складається з наступних частин:
+            - item_name: Назва предмету
+            - category_id: ID категорії
+            - status_id: ID статусу
+            - integrity_percentage: Відсоток цілісності
+            - purchase_date: Дата придбання
+            - item_notes: Примітки
+        :type item_data: dict
+
+        :return: ID новоствореного предмету або None при помилці.
+        :rtype: int
+
+        :raise: Exception, якщо відбулася помилка додавання даних.
+        """
         try:
             # Категорія вже повинна бути створена на цей момент
             query = """
@@ -116,7 +202,20 @@ class DBConnection:
             raise Exception(f"Не вдалося додати предмет: {str(e)}")
 
     def update_inventory_item(self, item_id, item_data):
-        """Оновлення інформації про предмет інвентарю"""
+        """
+        Метод для оновлення чинного інвентарю.
+
+        :param item_id: ID предмету, який планується оновити
+        :type item_id: int
+
+        :param item_data: Словник з новими даними предмета.
+        :type item_data: int
+
+        :return: True при успішному оновленні, False - при невдалому.
+        :rtype: bool
+
+        :raise: Exception, якщо відбулася помилка оновлення даних.
+        """
         try:
             query = """
                 UPDATE inventory SET
@@ -140,7 +239,17 @@ class DBConnection:
             raise Exception(f"Не вдалося оновити предмет: {str(e)}")
 
     def delete_inventory_item(self, item_id):
-        """Видалення предмету інвентарю"""
+        """
+        Метод для видалення чинних предметів з інвентарю.
+
+        :param item_id: ID предмета, який необхідно видалити.
+        :type item_id: int
+
+        :return: True при успішному видаленні, False - при невдалому.
+        :rtype: bool
+
+        :raise: Exception, якщо відбулася помилка видалення даних.
+        """
         try:
             return self.execute_query(
                 "DELETE FROM inventory WHERE item_id = %s",
@@ -150,7 +259,29 @@ class DBConnection:
             raise Exception(f"Не вдалося видалити предмет: {str(e)}")
 
     def rent_item(self, item_id, user_name, start_date, end_date, notes):
-        """Оренда предмету"""
+        """
+        Метод для оформлення оренди конкретного предмета з інвентарю.
+
+        :param item_id: ID предмету для оренди.
+        :type item_id: int
+
+        :param user_name: Ім'я орендаря.
+        :type user_name: str
+
+        :param start_date: Дата початку оренди.
+        :type start_date: date
+
+        :param end_date: Дата кінця оренди.
+        :type end_date: date
+
+        :param notes: Нотатки.
+        :type notes: str
+
+        :return: ID новоствореного запису оренди.
+        :rtype: int
+
+        :raise: Exception, якщо виникла помилка оформлення оренди.
+        """
         try:
             query = """
                 INSERT INTO usage_history (
@@ -170,7 +301,26 @@ class DBConnection:
             raise Exception(f"Не вдалося оформити оренду: {str(e)}")
 
     def return_item(self, history_id, returned_date, integrity_percentage, notes):
-        """Повернення предмету з оренди"""
+        """
+        Метод для оформлення повернення предмета з оренди.
+
+        :param history_id: ID запису оренди.
+        :type history_id: int
+
+        :param returned_date: Дата повернення предмета з оренди.
+        :type returned_date: date
+
+        :param integrity_percentage: Цілісність предмета після повернення з оренди.
+        :type integrity_percentage: int
+
+        :param notes: Нотатки
+        :type notes: str
+
+        :return: True при успішному поверненні предмета з оренди.
+        :rtype: bool
+
+        :raise: Exception, якщо виникла помилка повернення предмета з оренди.
+        """
         try:
             # Спочатку отримуємо ID предмету
             item_query = "SELECT item_id FROM usage_history WHERE history_id = %s"

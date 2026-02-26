@@ -7,7 +7,22 @@ from PyQt6.QtCore import QDate
 
 
 class ReturnForm(QDialog):
+    """
+    Клас, що відповідає за форму повернення предмета з оренди.
+    """
     def __init__(self, db, rental_id, current_integrity):
+        """
+        Метод для ініціалізації форми повернення предмета з оренди.
+
+        :param db: Підключення до бази даних.
+        :type db: DBConnection
+
+        :param rental_id: ID запису оренди.
+        :type rental_id: int
+
+        :param current_integrity: Цілісність предмета після повернення.
+        :type current_integrity: int
+        """
         super().__init__()
         self.db = db
         self.rental_id = rental_id
@@ -18,6 +33,14 @@ class ReturnForm(QDialog):
         self.load_rental_data()
 
     def init_ui(self, current_integrity):
+        """
+        Метод для ініціалізації UI форми.
+        Створює поля для відображення інформації про оренду, введення дати повернення, нової цілісності
+        та приміток.
+
+        :param current_integrity: Цілісність предмета після повернення.
+        :type current_integrity: int
+        """
         layout = QVBoxLayout()
         self.setLayout(layout)
 
@@ -55,7 +78,12 @@ class ReturnForm(QDialog):
         layout.addWidget(button_box)
 
     def load_rental_data(self):
-        """Завантаження даних про оренду"""
+        """
+        Метод для завантаження та відображення інформації про оренду.
+        Показує інформацію про предмет, орендаря та період оренди.
+
+        :raise: Exception, якщо відбулася помилка завантаження.
+        """
         try:
             query = """
                 SELECT r.history_id, i.item_name, i.inventory_number, 
@@ -77,7 +105,12 @@ class ReturnForm(QDialog):
             QMessageBox.critical(self, "Помилка", f"Не вдалося завантажити дані: {str(e)}")
 
     def validate_and_accept(self):
-        """Перевірка даних перед закриттям діалогу"""
+        """
+        Метод для перевірки введених даних.
+
+
+        :raise: ValueError, якщо введено неправильні дані.
+        """
         try:
             if self.integrity_spin.value() < 0 or self.integrity_spin.value() > 100:
                 raise ValueError("Цілісність повинна бути від 0 до 100%")
@@ -86,7 +119,12 @@ class ReturnForm(QDialog):
             QMessageBox.warning(self, "Попередження", str(e))
 
     def get_data(self):
-        """Повертає дані у вигляді словника"""
+        """
+        Метод для отримання даних у вигляді словника.
+
+        :return: Словник з даними про повернення предмета.
+        :rtype: dict
+        """
         return {
             "returned_date": self.return_date_edit.date().toPyDate(),
             "integrity_percentage": self.integrity_spin.value(),

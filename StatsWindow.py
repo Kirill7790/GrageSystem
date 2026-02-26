@@ -5,7 +5,23 @@ from DBConnection import DBConnection
 
 
 class StatsWindow(QWidget):
+    """
+    Клас, що відповідає за вкладку статистики використання інвентарю.
+
+    В собі містить три наступних вкладки:
+        - Вкладка "Популярність"
+        - Вкладка "Знос"
+        - Вкладка "Статистика оренд"
+    """
     def __init__(self, db: DBConnection, parent=None):
+        """
+        Метод для ініціалізації вкладки зі статистикою використання предметів.
+
+        :param db: Підключення до бази даних.
+        :type db: DBConnection
+
+        :param parent: Батьківська вкладка.
+        """
         super().__init__(parent)
         self.db = db
 
@@ -40,6 +56,10 @@ class StatsWindow(QWidget):
         self.load_data()
 
     def init_popularity_tab(self):
+        """
+        Метод для ініціалізації вкладки популярності використання предметів.
+        Відображає дані у вигляді стовпчастої діаграми.
+        """
         layout = QVBoxLayout()
         self.popularity_tab.setLayout(layout)
 
@@ -50,6 +70,10 @@ class StatsWindow(QWidget):
         layout.addWidget(self.popularity_canvas)
 
     def init_wear_tab(self):
+        """
+        Метод для ініціалізації вкладки зносу предметів.
+        Відображає дані у вигляді лінійної діаграми.
+        """
         layout = QVBoxLayout()
         self.wear_tab.setLayout(layout)
 
@@ -60,6 +84,10 @@ class StatsWindow(QWidget):
         layout.addWidget(self.wear_canvas)
 
     def init_rental_tab(self):
+        """
+        Метод для ініціалізації вкладки найбільш орендованих предметів.
+        Відображає дані у вигляді стовпчастої діаграми.
+        """
         layout = QVBoxLayout()
         self.rental_tab.setLayout(layout)
 
@@ -70,11 +98,20 @@ class StatsWindow(QWidget):
         layout.addWidget(self.rental_canvas)
 
     def load_data(self):
+        """
+        Метод для завантаження всіх статистичних даних.
+        """
         self.load_popularity_data()
         self.load_wear_data()
         self.load_rental_stats()
 
     def load_popularity_data(self):
+        """
+        Метод для завантаження та відображення даних про популярні предмети.
+        Також будує стовпчасту діаграму для відображення даних.
+
+        :raise: Exception, якщо відбулася помилка завантаження даних.
+        """
         try:
             data = self.db.execute_query("""
                 SELECT inv.item_name, COUNT(uh.history_id) as usage_count
@@ -101,6 +138,12 @@ class StatsWindow(QWidget):
             print(f"Помилка завантаження даних популярності: {e}")
 
     def load_wear_data(self):
+        """
+        Метод для завантаження та відображення даних про найбільш зношені предмети.
+        Також будує лінійну діаграму для відображення даних.
+
+        :raise: Exception, якщо відбулася помилка завантаження даних.
+        """
         try:
             data = self.db.execute_query("""
                 SELECT inv.item_name, inv.integrity_percentage, cnd.condition_name
@@ -130,6 +173,12 @@ class StatsWindow(QWidget):
             print(f"Помилка завантаження даних зносу: {e}")
 
     def load_rental_stats(self):
+        """
+        Метод для завантаження та відображення даних про найбільш популярні предмети для оренди.
+        Також будує стовпчасту діаграму для відображення даних.
+
+        :raise: Exception, якщо відбулася помилка завантаження даних.
+        """
         try:
             data = self.db.execute_query("""
                 SELECT 

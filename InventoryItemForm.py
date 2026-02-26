@@ -9,7 +9,19 @@ from DBConnection import DBConnection
 
 
 class InventoryItemForm(QDialog):
+    """
+    Клас, що відповідає за форму створення або редагування предметів інвентарю.
+    """
     def __init__(self, db: DBConnection, item_id=None):
+        """
+        Метод для ініціалізації вікна форми.
+
+        :param db: Підключення для бази даних.
+        :type db: DBConnection
+
+        :param item_id: ID предмета для редагування (None для нового предмета).
+        :type item_id: int, optional
+        """
         super().__init__()
         self.db = db
         self.item_id = item_id
@@ -20,6 +32,9 @@ class InventoryItemForm(QDialog):
         self.load_data()
 
     def init_ui(self):
+        """
+        Метод для ініціалізації UI форми. Створює поля для введення інформації користувачем.
+        """
         layout = QVBoxLayout()
         self.setLayout(layout)
 
@@ -82,7 +97,10 @@ class InventoryItemForm(QDialog):
         layout.addWidget(button_box)
 
     def load_data(self):
-        """Завантаження даних для редагування"""
+        """
+        Метод для завантаження даних (у випадку редагування).
+        Наявні поля заповнюються даними з бази.
+        """
         if self.item_id is not None:
             try:
                 query = """
@@ -119,7 +137,11 @@ class InventoryItemForm(QDialog):
                 QMessageBox.critical(self, "Помилка", f"Не вдалося завантажити дані: {str(e)}")
 
     def validate_and_accept(self):
-        """Перевірка даних перед закриттям діалогу"""
+        """
+        Метод для перевірки коректності введених даних.
+
+        :raise: ValueError, якщо введено некоректні дані.
+        """
         try:
             # Перевіряємо обов'язкові поля
             if not self.item_name_edit.text().strip():
@@ -141,7 +163,14 @@ class InventoryItemForm(QDialog):
             QMessageBox.warning(self, "Попередження", str(e))
 
     def get_or_create_category(self, category_name):
-        """Отримує ID категорії або створює нову"""
+        """
+        Метод для отримання або створення категорії.
+
+        :param category_name: Назва категорії.
+        :type category_name: str
+
+        :return: ID категорії.
+        """
         try:
             # Спочатку пробуємо знайти існуючу категорію
             result = self.db.execute_query(
@@ -164,7 +193,12 @@ class InventoryItemForm(QDialog):
         return None
 
     def get_data(self):
-        """Повертає дані у вигляді словника"""
+        """
+        Метод для отримання даних у вигляді словника.
+
+        :return: Словник з даними предмету.
+        :rtype: dict
+        """
         category_name = self.category_combo.currentText().strip()
         category_id = self.get_or_create_category(category_name)
         return {
