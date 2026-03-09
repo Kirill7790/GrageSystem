@@ -30,6 +30,9 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+.pre-commit-config.yaml
+mypy.ini
+.pylintrc
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
