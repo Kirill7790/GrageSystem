@@ -1,6 +1,11 @@
+import traceback
+
 import pandas as pd
 import psycopg2
+import logging
 
+
+logger = logging.getLogger(__name__)
 
 class DBConnection:
     """
@@ -31,8 +36,10 @@ class DBConnection:
                 password="1234",
                 host="localhost"
             )
+            logger.info("Підключення до БД встановлено")
             return True
         except Exception as e:
+            logger.error(f"Помилка підключення до БД: {e}" )
             print(f"Помилка підключення до бази даних: {e}")
             return False
 
@@ -44,6 +51,7 @@ class DBConnection:
         """
         if self.connection:
             self.connection.close()
+            logger.info("Підключення до БД завершено")
 
     def execute_query(self, query, params=None, fetch=False, return_df=False):
         """
@@ -66,6 +74,12 @@ class DBConnection:
             * Якщо fetch = True та return_df = False: Список кортежів з результатами.
             * Якщо fetch = True та return_df = True: DataFrame з результатами запиту.
         """
+        short_query = query[:100] + "..." if len(query) > 100 else query
+        logger.info(f"SQL Query: {short_query}")
+
+        if params:
+            logger.debug(f"Параметри запиту: {params}")
+
         try:
             with self.connection.cursor() as cursor:
                 cursor.execute(query, params or ())
@@ -73,22 +87,28 @@ class DBConnection:
                 if fetch:
                     if return_df:
                         # Для повернення DataFrame
+                        logger.debug("Повернення результату як DataFrame")
                         columns = [desc[0] for desc in cursor.description]
                         data = cursor.fetchall()
                         df = pd.DataFrame(data, columns=columns)
                         self.connection.commit()
+                        logger.info(f"Отримано {len(df)} рядків даних")
                         return df
                     else:
                         # Для повернення звичайного результату
                         result = cursor.fetchall()
                         self.connection.commit()
+                        logger.info(f"Отримано {len(result)} рядків")
                         return result
 
                 self.connection.commit()
+                logger.info(f"Змінено {cursor.rowcount} рядків")
                 return True
 
         except Exception as e:
             self.connection.rollback()
+            logger.error(f"Помилка виконання запиту: {e}")
+            logger.error(f"Деталі:\n{traceback.format_exc()}")
             print(f"Помилка виконання запиту: {e}")
             raise  # Піднімаємо виняток для обробки у викликаючому коді
 
@@ -100,12 +120,17 @@ class DBConnection:
 
         :raise: Exception, якщо відбулася помилка отримання даних.
         """
+        logger.info("Запит на отримання списку категорій")
         try:
-            return self.execute_query(
+            result = self.execute_query(
                 "SELECT category_id, category_name FROM categories ORDER BY category_name",
                 fetch=True, return_df=True
             )
+            logger.debug(f"Отримано {len(result)} категорій")
+            return result
         except Exception as e:
+            logger.error(f"Помилка виконання запиту: {e}")
+            logger.error(f"Деталі:\n{traceback.format_exc()}")
             raise Exception(f"Не вдалося отримати категорії: {str(e)}")
 
     def get_statuses(self):
@@ -117,12 +142,17 @@ class DBConnection:
 
         :raise: Exception, якщо відбулася помилка отримання даних.
         """
+        logger.info("Запит на отримання списку статусів")
         try:
-            return self.execute_query(
+            result =  self.execute_query(
                 "SELECT status_id, status_name FROM availability_statues ORDER BY status_id",
                 fetch=True, return_df=True
             )
+            logger.debug(f"Отримано {len(result)} статусів")
+            return result
         except Exception as e:
+            logger.error(f"Помилка виконання запиту: {e}")
+            logger.error(f"Деталі:\n{traceback.format_exc()}")
             raise Exception(f"Не вдалося отримати статуси: {str(e)}")
 
     def get_inventory_details(self):
@@ -134,12 +164,17 @@ class DBConnection:
 
         :raise: Exception, якщо відбулася помилка отримання даних.
         """
+        logger.info("Запит на отримання списку інвентарю")
         try:
-            return self.execute_query(
+            result = self.execute_query(
                 "SELECT * FROM inventory_details ORDER BY \"ID предмету\"",
                 fetch=True, return_df=True
             )
+            logger.debug(f"Отримано {len(result)} рядків предметів")
+            return result
         except Exception as e:
+            logger.error(f"Помилка виконання запиту: {e}")
+            logger.error(f"Деталі:\n{traceback.format_exc()}")
             raise Exception(f"Не вдалося отримати дані інвентарю: {str(e)}")
 
     def get_rental_history(self):
@@ -151,12 +186,17 @@ class DBConnection:
 
         :raise: Exception, якщо відбулася помилка отримання даних.
         """
+        logger.info("Запит на отримання історії використання")
         try:
-            return self.execute_query(
+            result = self.execute_query(
                 "SELECT * FROM rental_items ORDER BY \"Початок оренди\" DESC",
                 fetch=True, return_df=True
             )
+            logger.debug(f"Отримано {len(result)} рядків історії використання")
+            return result
         except Exception as e:
+            logger.error(f"Помилка виконання запиту: {e}")
+            logger.error(f"Деталі:\n{traceback.format_exc()}")
             raise Exception(f"Не вдалося отримати історію оренди: {str(e)}")
 
     def add_inventory_item(self, item_data):
@@ -178,11 +218,14 @@ class DBConnection:
 
         :raise: Exception, якщо відбулася помилка додавання даних.
         """
+        logger.info(f"Додавання нового предмету: {item_data.get('item_name')}")
+        logger.debug(f"Дані предмету: {item_data}")
+
         try:
             # Категорія вже повинна бути створена на цей момент
             query = """
                 INSERT INTO inventory (
-                    item_name, category_id, status_id, 
+                    item_name, category_id, status_id,
                     integrity_percentage, purchase_date, item_notes
                 ) VALUES (%s, %s, %s, %s, %s, %s)
                 RETURNING item_id
@@ -195,10 +238,15 @@ class DBConnection:
 
             result = self.execute_query(query, params, fetch=True)
             if result:
-                return result[0][0]  # Повертаємо ID нового предмету
+                item_id = result[0][0]
+                logger.info(f"Предмет додано успішно з ID: {item_id}")
+                return item_id # Повертаємо ID нового предмету
+            logger.warning("Предмет додано, але ID не отримано")
             return None
 
         except Exception as e:
+            logger.error(f"Помилка при додаванні предмету: {e}")
+            logger.error(f"Деталі:\n{traceback.format_exc()}")
             raise Exception(f"Не вдалося додати предмет: {str(e)}")
 
     def update_inventory_item(self, item_id, item_data):
@@ -216,6 +264,9 @@ class DBConnection:
 
         :raise: Exception, якщо відбулася помилка оновлення даних.
         """
+        logger.info(f"Оновлення предмету з ID: {item_id}")
+        logger.debug(f"Нові дані: {item_data}")
+
         try:
             query = """
                 UPDATE inventory SET
@@ -233,9 +284,13 @@ class DBConnection:
                 item_data["item_notes"], item_id
             )
 
-            return self.execute_query(query, params)
+            result = self.execute_query(query, params)
+            logger.info(f"Предмет з ID {item_id} оновлено успішно")
+            return result
 
         except Exception as e:
+            logger.error(f"Помилка при оновленні предмету {item_id}: {e}")
+            logger.error(f"Деталі:\n{traceback.format_exc()}")
             raise Exception(f"Не вдалося оновити предмет: {str(e)}")
 
     def delete_inventory_item(self, item_id):
@@ -250,12 +305,18 @@ class DBConnection:
 
         :raise: Exception, якщо відбулася помилка видалення даних.
         """
+        logger.warning(f"Видалення предмету з ID: {item_id}")
+
         try:
-            return self.execute_query(
+            result = self.execute_query(
                 "DELETE FROM inventory WHERE item_id = %s",
                 (item_id,)
             )
+            logger.info(f"Предмет з ID {item_id} видалено")
+            return result
         except Exception as e:
+            logger.error(f"Помилка при видаленні предмету {item_id}: {e}")
+            logger.error(f"Деталі:\n{traceback.format_exc()}")
             raise Exception(f"Не вдалося видалити предмет: {str(e)}")
 
     def rent_item(self, item_id, user_name, start_date, end_date, notes):
@@ -282,10 +343,13 @@ class DBConnection:
 
         :raise: Exception, якщо виникла помилка оформлення оренди.
         """
+        logger.info(f"Оформлення оренди: предмет {item_id}, орендар {user_name}")
+        logger.debug(f"Дата початку: {start_date}, дата завершення: {end_date}")
+
         try:
             query = """
                 INSERT INTO usage_history (
-                    item_id, user_name, start_date, end_date, 
+                    item_id, user_name, start_date, end_date,
                     returned_date, usage_notes, is_rental
                 ) VALUES (%s, %s, %s, %s, NULL, %s, true)
                 RETURNING history_id
@@ -294,10 +358,14 @@ class DBConnection:
 
             result = self.execute_query(query, params, fetch=True)
             if result:
-                return result[0][0]  # Повертаємо ID нової оренди
+                history_id = result[0][0] # Повертаємо ID нової оренди
+                logger.info(f"Оренду оформлено з ID: {history_id}")
+                return history_id
             return None
 
         except Exception as e:
+            logger.error(f"Помилка при оформленні оренди: {e}")
+            logger.error(f"Деталі:\n{traceback.format_exc()}")
             raise Exception(f"Не вдалося оформити оренду: {str(e)}")
 
     def return_item(self, history_id, returned_date, integrity_percentage, notes):
@@ -321,14 +389,19 @@ class DBConnection:
 
         :raise: Exception, якщо виникла помилка повернення предмета з оренди.
         """
+        logger.info(f"Повернення предмету з оренди ID: {history_id}")
+        logger.debug(f"Новий стан цілісності: {integrity_percentage}%")
+
         try:
             # Спочатку отримуємо ID предмету
             item_query = "SELECT item_id FROM usage_history WHERE history_id = %s"
             item_result = self.execute_query(item_query, (history_id,), fetch=True)
             if not item_result:
+                logger.error(f"Не знайдено запис оренди з ID {history_id}")
                 raise Exception("Не знайдено запис оренди")
 
             item_id = item_result[0][0]
+            logger.debug(f"ID предмету: {item_id}")
 
             # Оновлюємо запис оренди
             update_query = """
@@ -339,6 +412,7 @@ class DBConnection:
             """
 
             self.execute_query(update_query, (returned_date, notes, history_id))
+            logger.debug("Запис оренди оновлено")
 
             # Оновлюємо цілісність предмета
             integrity_query = """
@@ -347,8 +421,11 @@ class DBConnection:
                 WHERE item_id = %s
             """
             self.execute_query(integrity_query, (integrity_percentage, item_id))
+            logger.debug("Цілісність предмета оновлено")
 
             return True
 
         except Exception as e:
+            logger.error(f"Помилка при поверненні предмету: {e}")
+            logger.error(f"Деталі:\n{traceback.format_exc()}")
             raise Exception(f"Не вдалося зафіксувати повернення: {str(e)}")
